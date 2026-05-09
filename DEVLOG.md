@@ -28,3 +28,16 @@ What I learned: Defensible finance logic requires explicit calcs (e.g., current 
 Blockers / what I am stuck on: None—logic/tests pass; minor tweak for Gemini API token calcs if spend data needs parsing.
 
 Plan for tomorrow: Integrate with pricing-data.ts for live tool lookups; add dashboard UI mockups; run full e2e tests.
+
+
+Day 3 — 2026-05-09
+
+Hours worked: 4 hours.
+
+What I did: Built the spend input form with dynamic tool rows, auto-calculating monthly spend, and localStorage persistence. Built the audit results page with hero savings section, per-tool breakdown cards with color-coded badges, Credex CTA for savings above $500, and AI summary with skeleton loader.
+
+What I learned: react-hook-form with Zod handles validation and TypeScript types together from one schema — much cleaner than manual error state. Conditional rendering needs careful planning when multiple sections depend on different savings thresholds.
+
+Blockers / what I'm stuck on: OG image generation with @vercel/og is tricky — Twitter card preview not picking up the image yet despite correct meta tags in page head.
+
+Plan for tomorrow: Build API routes for /api/audit, /api/audit/[slug], and /api/leads with Supabase storage, Anthropic summary, Resend email, and rate limiting.
