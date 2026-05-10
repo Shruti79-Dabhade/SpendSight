@@ -2,6 +2,9 @@
 
 import * as React from "react";
 
+import { LeadCaptureModal } from "@/components/LeadCaptureModal";
+import { SharePanel } from "@/components/SharePanel";
+
 const TOOL_EMOJI: Record<string, string> = {
   cursor: "⚡",
   "github-copilot": "🐙",
@@ -34,13 +37,6 @@ type AuditSummary = {
   aiSummary?: string;
   credexEligible?: boolean;
   overallVerdict?: "optimized" | "minor-savings" | "significant-savings" | string;
-};
-
-type LeadPayload = {
-  auditId: string;
-  email: string;
-  company?: string;
-  role?: string;
 };
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -391,199 +387,6 @@ function CredexCta() {
   );
 }
 
-function ShareSection({ monthlySavings }: { monthlySavings: number }) {
-  const [copied, setCopied] = React.useState(false);
-  const url = typeof window !== "undefined" ? window.location.href : "";
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // no-op
-    }
-  }
-
-  const tweetText = `Just audited my AI tool spend with SpendSight — could save ${formatUsd0(
-    monthlySavings
-  )}/mo. Check yours free: ${url}`;
-
-  return (
-    <section className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-slate-950 print:hidden">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">Share your audit</h2>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Shared link shows tools and savings only — not your email or company name.
-      </p>
-
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <button
-          type="button"
-          onClick={copyLink}
-          className={cn(
-            "inline-flex items-center justify-center rounded-md border bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm",
-            "hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-50 dark:hover:bg-slate-900",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-slate-600 dark:focus-visible:ring-offset-slate-950"
-          )}
-        >
-          {copied ? "Copied!" : "Copy link"}
-        </button>
-
-        <a
-          className={cn(
-            "inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm",
-            "hover:bg-slate-800 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-white",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-slate-600 dark:focus-visible:ring-offset-slate-950"
-          )}
-          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Share on X
-        </a>
-
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className={cn(
-            "inline-flex items-center justify-center rounded-md border bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm",
-            "hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-50 dark:hover:bg-slate-900",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-slate-600 dark:focus-visible:ring-offset-slate-950"
-          )}
-        >
-          Print / Save PDF
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function LeadCapture({
-  auditId,
-  headline,
-  subhead
-}: {
-  auditId: string;
-  headline: string;
-  subhead: string;
-}) {
-  const [status, setStatus] = React.useState<"idle" | "loading" | "success" | "error">("idle");
-  const [error, setError] = React.useState<string | null>(null);
-
-  const [email, setEmail] = React.useState("");
-  const [company, setCompany] = React.useState("");
-  const [role, setRole] = React.useState("");
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setStatus("loading");
-
-    const payload: LeadPayload = {
-      auditId,
-      email,
-      company: company.trim() ? company.trim() : undefined,
-      role: role.trim() ? role.trim() : undefined
-    };
-
-    try {
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error("Request failed");
-      setStatus("success");
-    } catch {
-      setStatus("error");
-      setError("Could not submit right now. Please try again.");
-    }
-  }
-
-  return (
-    <section className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-slate-950 print:hidden">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">{headline}</h2>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subhead}</p>
-
-      {status === "success" ? (
-        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-100">
-          You&apos;re subscribed. We&apos;ll email you when new optimisations apply.
-        </div>
-      ) : (
-        <form className="mt-4 grid gap-3" onSubmit={submit}>
-          <div className="grid gap-1.5">
-            <label htmlFor="lead-email" className="text-sm font-medium text-slate-900 dark:text-slate-50">
-              Email
-            </label>
-            <input
-              id="lead-email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass(false)}
-              placeholder="you@company.com"
-            />
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <label htmlFor="lead-company" className="text-sm font-medium text-slate-900 dark:text-slate-50">
-                Company (optional)
-              </label>
-              <input
-                id="lead-company"
-                type="text"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                className={inputClass(false)}
-                placeholder="SpendSight Inc."
-              />
-            </div>
-
-            <div className="grid gap-1.5">
-              <label htmlFor="lead-role" className="text-sm font-medium text-slate-900 dark:text-slate-50">
-                Role (optional)
-              </label>
-              <input
-                id="lead-role"
-                type="text"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className={inputClass(false)}
-                placeholder="Founder / Eng / Ops"
-              />
-            </div>
-          </div>
-
-          {error ? (
-            <p className="text-sm text-red-600" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="submit"
-              disabled={status === "loading"}
-              className={cn(
-                "inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm",
-                "hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-              )}
-            >
-              {status === "loading" ? "Submitting…" : "Notify me"}
-            </button>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              No spam. Unsubscribe anytime.
-            </p>
-          </div>
-        </form>
-      )}
-    </section>
-  );
-}
-
 function inputClass(isInvalid: boolean) {
   return cn(
     "h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm",
@@ -606,15 +409,10 @@ export function AuditResults(props: {
   const monthlySavings = Math.max(0, Number(audit.totalMonthlySavings) || 0);
   const annualSavings = Math.max(0, Number(audit.totalAnnualSavings) || 0);
   const credexEligible = audit.credexEligible === true || monthlySavings >= 500;
-
-  const leadHeadline =
-    monthlySavings >= 100
-      ? "Get this report by email + be notified when better options launch"
-      : "Notify me when new optimisations apply to my stack";
-  const leadSubhead =
-    monthlySavings >= 100
-      ? "We’ll email this report and keep you updated as pricing and plans change."
-      : "We’ll email you if new pricing or plan changes create fresh savings.";
+  const toolNames = audit.results
+    .map((r) => r.toolName || r.toolId)
+    .filter((v) => v.trim().length > 0)
+    .slice(0, 6);
 
   return (
     <main className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-[#070a12] dark:text-slate-50 print:bg-white">
@@ -654,9 +452,21 @@ export function AuditResults(props: {
 
           {credexEligible ? <CredexCta /> : null}
 
-          <LeadCapture auditId={props.auditId} headline={leadHeadline} subhead={leadSubhead} />
+          <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-slate-950 print:hidden">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">
+                  Get this report by email
+                </h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  We’ll send your audit summary and a link to the full report.
+                </p>
+              </div>
+              <LeadCaptureModal auditSlug={props.slug} monthlySavings={monthlySavings} tools={toolNames} autoOpen />
+            </div>
+          </div>
 
-          <ShareSection monthlySavings={monthlySavings} />
+          <SharePanel slug={props.slug} savings={monthlySavings} tools={toolNames} />
         </div>
       </div>
     </main>
