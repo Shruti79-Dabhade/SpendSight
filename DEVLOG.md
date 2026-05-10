@@ -41,3 +41,41 @@ What I learned: react-hook-form with Zod handles validation and TypeScript types
 Blockers / what I'm stuck on: OG image generation with @vercel/og is tricky — Twitter card preview not picking up the image yet despite correct meta tags in page head.
 
 Plan for tomorrow: Build API routes for /api/audit, /api/audit/[slug], and /api/leads with Supabase storage, Anthropic summary, Resend email, and rate limiting.
+
+
+Day 5 — 2026-05-11
+
+Hours worked: 4
+
+What I did: Built three API routes — POST /api/audit which runs the audit engine, saves results to Supabase with a unique nanoid slug, and calls Anthropic API for the AI summary with 
+a fallback template if the API fails. POST 
+/api/leads which saves email and optional company 
+and role fields to Supabase then sends a 
+transactional confirmation email via Resend. 
+Also built the lead capture modal with honeypot 
+field for bot protection and the share panel 
+with copy link button and pre-filled Twitter 
+share text that strips PII from the public URL.
+
+What I learned: Anthropic API can return 
+429 rate limit errors so graceful fallback to 
+a template summary is essential — never let an 
+API failure break the whole audit flow. Resend 
+free tier allows 100 emails per day which is 
+more than enough for MVP. nanoid generates 
+clean 10-character slugs that are URL-safe and 
+short enough to share easily.
+
+Blockers / what I'm stuck on: Honeypot 
+field needs to be hidden via CSS display none 
+and NOT via HTML hidden attribute — bots detect 
+the hidden attribute but not CSS. Also rate 
+limiting per IP in Next.js App Router needs 
+an in-memory map since there is no built-in 
+middleware for this on Vercel free tier.
+
+Plan for tomorrow: Add GitHub Actions CI 
+workflow, write all required markdown docs — 
+README, ARCHITECTURE, TESTS, PRICING_DATA, 
+PROMPTS — and run Lighthouse audit on deployed 
+URL to check scores above 85.
