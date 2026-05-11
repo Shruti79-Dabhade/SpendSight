@@ -1,81 +1,85 @@
-Day 1 — 2026-05-07
+# Dev log (template)
 
-Hours worked:
-6–7 hours
+## Day 1 — YYYY-MM-DD
 
-What I did:
-Set up the project architecture using Next.js 14, TypeScript, Tailwind CSS, Supabase, Resend, and Anthropic API. Created config files, database schema, TypeScript interfaces, Supabase setup, and architecture documentation.
+**Hours worked:** X
 
-What I learned:
-Learned scalable SaaS architecture, Supabase integration, strict TypeScript practices, and secure API/environment setup.
+**What I did:** [Fill in daily]
 
-Blockers / what I am stuck on:
-Need to finalize AI audit logic structure, caching strategy, and rate limiting for high traffic.
+**What I learned:** [Fill in daily]
 
-Plan for tomorrow:
-Set up Supabase account and got the database credentials. Added pricing data for all 8 AI tools.
-Build API routes, connect Anthropic API, add validations, create frontend UI, integrate database logic, and start testing.
+**Blockers / what I'm stuck on:** [Fill in daily]
 
+**Plan for tomorrow:** [Fill in daily]
 
-Day 2 — 2026-05-08
+## Day 2 — YYYY-MM-DD
 
-Hours worked: 5 hours.
+**Hours worked:** X
 
-What I did: Implemented /lib/audit-engine.ts with full audit rules (overpaying seats, use-case matching, duplicates like Cursor+Copilot flag, retail vs credits >$500 for Credex, plan fit spend checks); generated typed AuditResult/Summary outputs with math-driven reasons/savings; wrote 10 Vitest tests in /tests/audit-engine.test.ts covering all cases (e.g., downgrade logic saves $60/mo on Cursor Business for 3 seats).
+**What I did:** [Fill in daily]
 
-What I learned: Defensible finance logic requires explicit calcs (e.g., current $403=$120 vs Pro $203=$60); duplicates prioritize 1 coding tool (Cursor/Copilot/Claude); thresholds like >50 seats trigger Enterprise recs.
+**What I learned:** [Fill in daily]
 
-Blockers / what I am stuck on: None—logic/tests pass; minor tweak for Gemini API token calcs if spend data needs parsing.
+**Blockers / what I'm stuck on:** [Fill in daily]
 
-Plan for tomorrow: Integrate with pricing-data.ts for live tool lookups; add dashboard UI mockups; run full e2e tests.
+**Plan for tomorrow:** [Fill in daily]
 
+## Day 3 — YYYY-MM-DD
 
-Day 3 — 2026-05-09
+**Hours worked:** X
 
-Hours worked: 4 hours.
+**What I did:** [Fill in daily]
 
-What I did: Built the spend input form with dynamic tool rows, auto-calculating monthly spend, and localStorage persistence. Built the audit results page with hero savings section, per-tool breakdown cards with color-coded badges, Credex CTA for savings above $500, and AI summary with skeleton loader.
+**What I learned:** [Fill in daily]
 
-What I learned: react-hook-form with Zod handles validation and TypeScript types together from one schema — much cleaner than manual error state. Conditional rendering needs careful planning when multiple sections depend on different savings thresholds.
+**Blockers / what I'm stuck on:** [Fill in daily]
 
-Blockers / what I'm stuck on: OG image generation with @vercel/og is tricky — Twitter card preview not picking up the image yet despite correct meta tags in page head.
+**Plan for tomorrow:** [Fill in daily]
 
-Plan for tomorrow: Build API routes for /api/audit, /api/audit/[slug], and /api/leads with Supabase storage, Anthropic summary, Resend email, and rate limiting.
+## Day 4 — YYYY-MM-DD
 
+**Hours worked:** X
 
-Day 5 — 2026-05-11
+**What I did:** [Fill in daily]
 
-Hours worked: 4
+**What I learned:** [Fill in daily]
 
-What I did: Built three API routes — POST /api/audit which runs the audit engine, saves results to Supabase with a unique nanoid slug, and calls Anthropic API for the AI summary with 
-a fallback template if the API fails. POST 
-/api/leads which saves email and optional company 
-and role fields to Supabase then sends a 
-transactional confirmation email via Resend. 
-Also built the lead capture modal with honeypot 
-field for bot protection and the share panel 
-with copy link button and pre-filled Twitter 
-share text that strips PII from the public URL.
+**Blockers / what I'm stuck on:** [Fill in daily]
 
-What I learned: Anthropic API can return 
-429 rate limit errors so graceful fallback to 
-a template summary is essential — never let an 
-API failure break the whole audit flow. Resend 
-free tier allows 100 emails per day which is 
-more than enough for MVP. nanoid generates 
-clean 10-character slugs that are URL-safe and 
-short enough to share easily.
+**Plan for tomorrow:** [Fill in daily]
 
-Blockers / what I'm stuck on: Honeypot 
-field needs to be hidden via CSS display none 
-and NOT via HTML hidden attribute — bots detect 
-the hidden attribute but not CSS. Also rate 
-limiting per IP in Next.js App Router needs 
-an in-memory map since there is no built-in 
-middleware for this on Vercel free tier.
+## Day 5 — YYYY-MM-DD
 
-Plan for tomorrow: Add GitHub Actions CI 
-workflow, write all required markdown docs — 
-README, ARCHITECTURE, TESTS, PRICING_DATA, 
-PROMPTS — and run Lighthouse audit on deployed 
-URL to check scores above 85.
+**Hours worked:** X
+
+**What I did:** [Fill in daily]
+
+**What I learned:** [Fill in daily]
+
+**Blockers / what I'm stuck on:** [Fill in daily]
+
+**Plan for tomorrow:** [Fill in daily]
+
+## Day 6 — YYYY-MM-DD
+
+**Hours worked:** X
+
+**What I did:** [Fill in daily]
+
+**What I learned:** [Fill in daily]
+
+**Blockers / what I'm stuck on:** [Fill in daily]
+
+**Plan for tomorrow:** [Fill in daily]
+
+## Day 7 — YYYY-MM-DD
+
+**Hours worked:** X
+
+**What I did:** [Fill in daily]
+
+**What I learned:** [Fill in daily]
+
+**Blockers / what I'm stuck on:** [Fill in daily]
+
+**Plan for tomorrow:** [Fill in daily]

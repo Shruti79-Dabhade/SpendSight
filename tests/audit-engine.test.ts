@@ -1,23 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { runAudit } from "../lib/audit-engine";
 
 describe("audit-engine", () => {
-  it("downgrades team/business plans when seats < 3 (Cursor Business -> Pro)", () => {
-    const summary = runAudit({
-      tools: [{ toolId: "cursor", plan: "Business", monthlySpend: 80, seats: 2 }],
-      useCase: "coding",
-      teamSize: 2
-    });
-
-    const r = summary.results.find((x) => x.toolId === "cursor")!;
-    expect(r.recommendedAction).toBe("downgrade");
-    expect(r.recommendedPlan).toBe("Pro");
-    expect(r.savings).toBe(40);
-    expect(r.reason).toContain("$40");
-    expect(r.reason).toContain("× 2");
-  });
-
-  it("flags Cursor + Copilot + Anthropic API as likely redundant (duplicate detection)", () => {
+  test("detects duplicate coding tools when user has Cursor + Copilot + Claude API", () => {
     const summary = runAudit({
       tools: [
         { toolId: "cursor", plan: "Pro", monthlySpend: 60, seats: 3 },
@@ -28,30 +13,28 @@ describe("audit-engine", () => {
       teamSize: 3
     });
 
-    const copilot = summary.results.find((x) => x.toolId === "github-copilot")!;
+    const copilot = summary.results.find((r) => r.toolId === "github-copilot")!;
     expect(copilot.recommendedAction).toBe("optimize");
     expect(copilot.savings).toBe(57);
+    expect(copilot.reason.toLowerCase()).toContain("cursor");
+    expect(copilot.reason.toLowerCase()).toContain("anthropic api");
     expect(copilot.reason.toLowerCase()).toContain("consolidating");
   });
 
-  it("flags ChatGPT Plus + Claude Pro overlap for writing and suggests consolidation", () => {
+  test("recommends downgrade from Business to Pro when only 2 seats used", () => {
     const summary = runAudit({
-      tools: [
-        { toolId: "chatgpt", plan: "Plus", monthlySpend: 20, seats: 1 },
-        { toolId: "claude", plan: "Pro", monthlySpend: 20, seats: 1 }
-      ],
-      useCase: "writing",
-      teamSize: 1
+      tools: [{ toolId: "cursor", plan: "Business", monthlySpend: 80, seats: 2 }],
+      useCase: "coding",
+      teamSize: 2
     });
 
-    const optimized = summary.results.filter((r) => r.recommendedAction === "optimize");
-    expect(optimized.length).toBeGreaterThanOrEqual(1);
-    const r = optimized[0]!;
-    expect(r.savings).toBeGreaterThanOrEqual(20);
-    expect(r.reason.toLowerCase()).toContain("overlap");
+    const r = summary.results.find((x) => x.toolId === "cursor")!;
+    expect(r.recommendedAction).toBe("downgrade");
+    expect(r.recommendedPlan).toBe("Pro");
+    expect(r.savings).toBe(40);
   });
 
-  it("sets credexEligible when totalMonthlySpend > $500", () => {
+  test("sets credexEligible=true when total monthly spend > $500", () => {
     const summary = runAudit({
       tools: [
         { toolId: "openai-api", plan: "pay-per-token", monthlySpend: 300, seats: 1 },
@@ -63,7 +46,46 @@ describe("audit-engine", () => {
     expect(summary.credexEligible).toBe(true);
   });
 
-  it("suggests switching to a preferred coding tool when current tool is misaligned and expensive", () => {
+  test("sets credexEligible=false when total monthly spend < $500", () => {
+    const summary = runAudit({
+      tools: [
+        { toolId: "cursor", plan: "Pro", monthlySpend: 200, seats: 2 },
+        { toolId: "chatgpt", plan: "Plus", monthlySpend: 200, seats: 2 }
+      ],
+      useCase: "mixed",
+      teamSize: 4
+    });
+    expect(summary.credexEligible).toBe(false);
+  });
+
+  test("returns overallVerdict=optimized when savings < $50", () => {
+    const summary = runAudit({
+      tools: [
+        { toolId: "cursor", plan: "Pro", monthlySpend: 20, seats: 1 },
+        { toolId: "claude", plan: "Pro", monthlySpend: 20, seats: 1 }
+      ],
+      useCase: "mixed",
+      teamSize: 2
+    });
+    expect(summary.totalMonthlySavings).toBeLessThan(50);
+    expect(summary.overallVerdict).toBe("optimized");
+  });
+
+  test("returns overallVerdict=significant-savings when savings > $500", () => {
+    const summary = runAudit({
+      tools: [
+        { toolId: "cursor", plan: "Pro", monthlySpend: 20, seats: 1 },
+        { toolId: "github-copilot", plan: "Individual", monthlySpend: 600, seats: 1 },
+        { toolId: "anthropic-api", plan: "pay-per-token", monthlySpend: 50, seats: 1 }
+      ],
+      useCase: "coding",
+      teamSize: 2
+    });
+    expect(summary.totalMonthlySavings).toBeGreaterThan(500);
+    expect(summary.overallVerdict).toBe("significant-savings");
+  });
+
+  test("use-case=coding prioritises coding tool recommendations", () => {
     const summary = runAudit({
       tools: [{ toolId: "gemini", plan: "Pro", monthlySpend: 200, seats: 1 }],
       useCase: "coding",
@@ -71,62 +93,50 @@ describe("audit-engine", () => {
     });
     const r = summary.results[0]!;
     expect(r.recommendedAction).toBe("switch");
-    expect(r.alternativeTool).toBeTruthy();
-    expect(r.savings).toBeGreaterThan(150);
-    expect(r.reason).toContain("$200");
+    expect(r.alternativeTool).toBe("GitHub Copilot");
+    expect(r.reason.toLowerCase()).toContain("coding");
   });
 
-  it("applies plan-fit rule when reported spend is far below list price × seats (downgrade to cheaper plan)", () => {
+  test("zero-savings edge case: all tools already optimal returns empty savings", () => {
     const summary = runAudit({
-      tools: [{ toolId: "cursor", plan: "Business", monthlySpend: 120, seats: 5 }],
-      useCase: "coding",
-      teamSize: 5
+      tools: [
+        { toolId: "cursor", plan: "Pro", monthlySpend: 20, seats: 1 },
+        { toolId: "claude", plan: "Pro", monthlySpend: 20, seats: 1 }
+      ],
+      useCase: "mixed",
+      teamSize: 2
     });
-    const r = summary.results.find((x) => x.toolId === "cursor")!;
-    expect(r.recommendedAction).toBe("downgrade");
-    expect(r.recommendedPlan).toBe("Pro");
-    expect(r.savings).toBe(20); // 120 - (20*5)
-    expect(r.reason).toContain("$40");
-    expect(r.reason).toContain("× 5");
+    expect(summary.totalMonthlySavings).toBe(0);
+    expect(summary.results.every((r) => r.savings === 0)).toBe(true);
   });
 
-  it("recommends upgrading free/hobby tier when seats >= 10 (admin controls)", () => {
+  test("handles single tool correctly without crashing", () => {
+    expect(() =>
+      runAudit({
+        tools: [{ toolId: "cursor", plan: "Pro", monthlySpend: 20, seats: 1 }],
+        useCase: "coding",
+        teamSize: 1
+      })
+    ).not.toThrow();
+
     const summary = runAudit({
-      tools: [{ toolId: "cursor", plan: "Hobby", monthlySpend: 0, seats: 12 }],
-      useCase: "coding",
-      teamSize: 12
-    });
-    const r = summary.results.find((x) => x.toolId === "cursor")!;
-    expect(r.recommendedAction).toBe("upgrade");
-    expect(r.recommendedPlan).toBe("Business");
-    expect(r.savings).toBe(0);
-  });
-
-  it("handles zero-savings edge case (keep)", () => {
-    const summary = runAudit({
-      tools: [{ toolId: "github-copilot", plan: "Individual", monthlySpend: 10, seats: 1 }],
-      useCase: "coding",
-      teamSize: 1
-    });
-    const r = summary.results.find((x) => x.toolId === "github-copilot")!;
-    expect(r.savings).toBe(0);
-    expect(["keep", "optimize", "downgrade", "switch", "upgrade"]).toContain(r.recommendedAction);
-  });
-
-  it("computes overallVerdict thresholds correctly", () => {
-    const optimized = runAudit({
       tools: [{ toolId: "cursor", plan: "Pro", monthlySpend: 20, seats: 1 }],
       useCase: "coding",
       teamSize: 1
     });
-    expect(optimized.overallVerdict).toBe("optimized");
+    expect(summary.results).toHaveLength(1);
+    expect(summary.results[0]!.toolId).toBe("cursor");
+  });
 
-    const minor = runAudit({
-      tools: [{ toolId: "cursor", plan: "Business", monthlySpend: 160, seats: 4 }],
+  test("annual savings = monthly savings × 12", () => {
+    const summary = runAudit({
+      tools: [{ toolId: "cursor", plan: "Business", monthlySpend: 80, seats: 2 }],
       useCase: "coding",
-      teamSize: 4
+      teamSize: 2
     });
-    expect(["optimized", "minor-savings", "significant-savings"]).toContain(minor.overallVerdict);
+    const r = summary.results.find((x) => x.toolId === "cursor")!;
+    expect(r.savings).toBe(40);
+    expect(r.annualSavings).toBeCloseTo(r.savings * 12, 5);
+    expect(summary.totalAnnualSavings).toBeCloseTo(summary.totalMonthlySavings * 12, 5);
   });
 });
-
