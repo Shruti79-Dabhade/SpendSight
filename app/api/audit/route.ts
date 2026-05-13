@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
+// import { NextResponse, type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
@@ -14,11 +15,23 @@ import {
 
 export type AuditSummary = EngineAuditSummary & { aiSummary: string };
 
-const AuditRequestSchema = z.object({
-  tools: z.array(ToolEntrySchema),
-  teamSize: z.number().int().nonnegative(),
-  useCase: UseCaseSchema,
-  website: z.any().optional() // honeypot
+// const AuditRequestSchema = z.object({
+//   tools: z.array(ToolEntrySchema),
+//   teamSize: z.number().int().nonnegative(),
+//   useCase: UseCaseSchema,
+//   website: z.any().optional() // honeypot
+// });
+const AuditSchema = z.object({
+  teamSize: z.number().min(1).max(500),
+  useCase: z.enum(["coding", "writing", "data", "research", "mixed"]), // ✅ lowercase
+  tools: z.array(
+    z.object({
+      toolId: z.string().min(1),
+      plan: z.string().min(1),  // ✅ "plan" not "planId"
+      monthlySpend: z.number().min(0),
+      seats: z.number().int().min(1)
+    })
+  ).min(1)
 });
 
 type RateBucket = { count: number; resetAtMs: number };
@@ -164,7 +177,7 @@ export async function POST(req: NextRequest) {
     return new NextResponse(null, { status: 204 });
   }
 
-  const parsed = AuditRequestSchema.safeParse(raw);
+  const parsed = AuditSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid request body.", details: parsed.error.flatten() },

@@ -202,14 +202,39 @@ export function SpendForm() {
     });
   }, [watchedTools, form]);
 
+  function transformFormData(values: SpendFormValues) {
+    return {
+      teamSize: values.teamSize,
+      useCase: values.primaryUseCase.toLowerCase() as "coding" | "writing" | "data" | "research" | "mixed",
+      tools: values.tools.map(tool => ({
+        toolId: tool.toolId,
+        plan: tool.planId,  // ❌ planId → plan
+        monthlySpend: tool.monthlySpend,
+        seats: tool.seats
+      }))
+    };
+  }
+
   async function onSubmit(values: SpendFormValues) {
     setSubmitError(null);
     setIsSubmitting(true);
     try {
+      // ✅ Transform to match API schema
+    const payload = transformFormData(values);
+    console.log("Sending payload:", JSON.stringify(payload, null, 2));
+    
+      // const res = await fetch("/api/audit", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(values)
+      // });
       const res = await fetch("/api/audit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values)
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload)  // ✅ Now matches exactly
       });
 
       if (!res.ok) {
@@ -217,17 +242,26 @@ export function SpendForm() {
         throw new Error(text || "Request failed");
       }
 
-      const json = (await res.json()) as Partial<ApiAuditResponse>;
-      if (!json.slug || typeof json.slug !== "string") throw new Error("Invalid API response");
+  //     const json = (await res.json()) as Partial<ApiAuditResponse>;
+  //     if (!json.slug || typeof json.slug !== "string") throw new Error("Invalid API response");
 
-      router.push(`/audit/${encodeURIComponent(json.slug)}`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Something went wrong";
-      setSubmitError(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
+  //     router.push(`/audit/${encodeURIComponent(json.slug)}`);
+  //   } catch (e) {
+  //     const msg = e instanceof Error ? e.message : "Something went wrong";
+  //     setSubmitError(msg);
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // }
+  const json = await res.json() as ApiAuditResponse;
+    router.push(`/audit/${encodeURIComponent(json.slug)}`);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Something went wrong";
+    setSubmitError(msg);
+  } finally {
+    setIsSubmitting(false);
   }
+}
 
   const toolsErrorId = "tools-error";
   const submitErrorId = "submit-error";
